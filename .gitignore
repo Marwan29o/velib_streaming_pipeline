@@ -1,0 +1,18 @@
+# Secrets — ne JAMAIS committer
+.env
+*.key
+gcp-key.json
+credentials/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Spark (fichiers générés au runtime)
+checkpoints/
+spark-warehouse/
+
+# macOS
+.DS_Store

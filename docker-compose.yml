@@ -18,3 +18,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  producer:
+    build: ./producer # construction de l'image Docker à partir du Dockerfile
+    depends_on:
+      - kafka # s'assure que Kafka démarre avant le producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # adresse IP par laquelle le producer accède à Kafka
+    restart: on-failure # redémarre automatiquement le producer en cas d'erreur
+
+  

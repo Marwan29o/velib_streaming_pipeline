@@ -2,6 +2,7 @@ import requests
 import json
 from confluent_kafka import Producer
 import time 
+import os
 
 API_URL = ("https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/"
             "velib-disponibilite-en-temps-reel/records")
@@ -69,7 +70,7 @@ def send_to_kafka(producer, records):
 
 
 if __name__ == "__main__":
-    producer = Producer({"bootstrap.servers": "localhost:9092"})
+    producer = Producer({"bootstrap.servers": os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")})
     
     while True : 
         try :

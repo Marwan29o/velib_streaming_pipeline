@@ -27,4 +27,11 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # adresse IP par laquelle le producer accède à Kafka
     restart: on-failure # redémarre automatiquement le producer en cas d'erreur
 
-  
+  spark:
+    build: ./spark
+    depends_on:
+      - kafka
+    environment:
+      - SPARK_LOCAL_IP=spark
+      - SPARK_USER=root
+    restart: on-failure

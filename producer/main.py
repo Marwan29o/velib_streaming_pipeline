@@ -61,7 +61,7 @@ def send_to_kafka(producer, records):
     for record in records:
         producer.produce( # buffer : accumulate les messages avant de les envoyer en un seul envoi
             topic= "velib-stations",
-            key= record["stationcode"],    # clé qui identifie de façon unique un enregistrement
+            key= record["stationcode"],    # permet d'avoir tous les messages d'une même station dans le même partition et dans l'ordre
             value = json.dumps(record).encode("utf-8") # valeur qui est sérialisée en JSON puis encodée en bytes
         )                                              # puisque Kafka attend des bytes
 

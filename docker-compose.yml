@@ -35,3 +35,25 @@ services:
       - SPARK_LOCAL_IP=spark
       - SPARK_USER=root
     restart: on-failure
+
+  opensearch: # Moteur de recherche et d'analyse de données
+    image: opensearchproject/opensearch:2.11.0
+    container_name: opensearch 
+    hostname: opensearch # adresse réseau par laquelle les autres containers communiquent avec OpenSearch 
+    environment:
+      - discovery.type=single-node # tourne seul, pas en cluster
+      - DISABLE_SECURITY_PLUGIN=true # désactive le plugin de sécurité pour simplifier l'authentification
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # alloue 512 Mo de RAM à OpenSearch (sinon prend 50% de la RAM)
+    ports:
+      - "9200:9200" # expose le port 9200 pour accéder à OpenSearch
+
+  opensearch-dashboards: # Interface graphique pour visualiser les données d'OpenSearch
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    container_name: opensearch-dashboards
+    depends_on:
+      - opensearch
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200 # adresse IP par laquelle OpenSearch Dashboards accède à OpenSearch 
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true 
+    ports:
+      - "5601:5601" # expose le port 5601 pour accéder à OpenSearch Dashboards via localhost:5601

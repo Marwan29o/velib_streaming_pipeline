@@ -2,6 +2,34 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType, DoubleType
 from pyspark.sql import functions as F
+from opensearchpy import OpenSearch
+
+# --- Connexion à OpenSearch 
+client = OpenSearch([{"host": "opensearch", "port" : 9200}])
+
+# --- Fonction appelée par foreachBatch à chaque micro-batch
+def write_to_opensearch(batch_df, batch_id):
+
+    print(f">>> Batch {batch_id} reçu, nombre de lignes : {batch_df.count()}")
+
+    # Convertit les colonnes window (struct) en strings lisibles
+    batch_df = batch_df.withColumn("window_start", F.col("window.start").cast("string")) \
+                       .withColumn("window_end", F.col("window.end").cast("string")) \
+                       .drop("window")
+
+    # Convertit le DataFrame Spark en liste de dicts Python
+    records = batch_df.toJSON().collect()
+    print(f">>> Nombre de records à envoyer : {len(records)}")
+
+
+    # Envoie chaque record dans OpenSearch
+    for record in records:
+        try :
+            client.index(index="velib-stations", body=record)
+        except Exception as e:
+            print(f">>> Erreur OpenSearch : {e}")
+
+
 
 spark = SparkSession.builder.appName("velib-streaming").getOrCreate()
 spark.sparkContext.setLogLevel("WARN") # Je limite les log dans le cas ou c'est un WARNING ou une erreur
@@ -12,7 +40,7 @@ spark.sparkContext.setLogLevel("WARN") # Je limite les log dans le cas ou c'est 
 # kafka:29092 : adresse interne Docker du broker Kafka, car Spark tourne dans un container Docker séparé
 
 raw_df = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "kafka:29092") \
-    .option("subscribe", "velib-stations").option("startingOffsets", "latest").load()
+    .option("subscribe", "velib-stations").option("startingOffsets", "earliest").load()
 
 
 # --- BLOC : Schema JSON 
@@ -74,12 +102,13 @@ windowed_df = enriched_df.groupBy(F.window("duedate", "5 minutes", "2 minutes"),
 # --- BLOC : le writeStream
 
 # query : gère le flux de données en continu
-# .format("console") : affiche les données dans la console
+# .format("console") : affiche les données dans la console (lorsqu'on utilise dans la console)
+# foreachBatch(write_to_opensearch) : envoie les données dans OpenSearch via la fonction write_to_opensearch
 # .outputMode("update") : met à jour les résultats dans la console
-# .option("truncate", False) : affiche les données sans tronquer
+# .option("truncate", False) : affiche les données sans tronquer 
 # .start() : démarre le flux
 # .awaitTermination() : garde le script en vie tant que le flux tourne
 
-query = windowed_df.writeStream.format("console").outputMode("update").option("truncate", False).start()
+query = windowed_df.writeStream.foreachBatch(write_to_opensearch).outputMode("update").start()
 query.awaitTermination()
 

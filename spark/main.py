@@ -3,9 +3,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType, DoubleType
 from pyspark.sql import functions as F
 from opensearchpy import OpenSearch
+from google.cloud import bigquery
 
 # --- Connexion à OpenSearch 
 client = OpenSearch([{"host": "opensearch", "port" : 9200}])
+bq_client = bigquery.Client(project="velib-streaming")
 
 # --- Fonction appelée par foreachBatch à chaque micro-batch
 def write_to_opensearch(batch_df, batch_id):
@@ -21,13 +23,27 @@ def write_to_opensearch(batch_df, batch_id):
     records = batch_df.toJSON().collect()
     print(f">>> Nombre de records à envoyer : {len(records)}")
 
-
     # Envoie chaque record dans OpenSearch
     for record in records:
         try :
             client.index(index="velib-stations", body=record)
         except Exception as e:
             print(f">>> Erreur OpenSearch : {e}")
+
+
+# --- Permet d'envoyer les données vers BigQuery
+def write_to_bigquery(batch_df, batch_id):
+
+    if batch_df.isEmpty():
+        return
+
+    pandas_df = batch_df.toPandas() # convertit le DataFrame Spark en DataFrame Pandas
+    table_ref = "velib-streaming.velib.stations" # référence de la table BigQuery
+
+    job = bq_client.load_table_from_dataframe(pandas_df, table_ref) # charge les données dans BigQuery
+    job.result() # attend que le job soit terminé
+
+    print(f">>> BigQuery Batch {batch_id} : {len(pandas_df)}envoyé vers BigQuery")
 
 
 
@@ -109,6 +125,13 @@ windowed_df = enriched_df.groupBy(F.window("duedate", "5 minutes", "2 minutes"),
 # .start() : démarre le flux
 # .awaitTermination() : garde le script en vie tant que le flux tourne
 
-query = windowed_df.writeStream.foreachBatch(write_to_opensearch).outputMode("update").start()
-query.awaitTermination()
 
+# Chemin chaud : données agrégées => OpenSearch (dashboard temps réel)
+os_query = windowed_df.writeStream.foreachBatch(write_to_opensearch).outputMode("update").start()
+
+# Chemin froid : données enrichies (grain fin) => BigQuery (analyse historique)
+
+bq_query = enriched_df.writeStream.foreachBatch(write_to_bigquery).outputMode("append").start()
+
+
+spark.streams.awaitAnyTermination() # garde le script en vie tant que les flux tournent

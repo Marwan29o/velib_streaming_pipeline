@@ -17,3 +17,5 @@ spark-warehouse/
 # macOS
 .DS_Store
 *.ipynb
+
+service-account.json

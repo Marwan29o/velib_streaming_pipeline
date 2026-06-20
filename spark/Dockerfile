@@ -24,7 +24,7 @@ USER root
 # par défaut spark est lancé avec l'utilisateur spark qui n'a pas les droits
 # pour pouvoir installer les dépendances il faut passer en root
 
-RUN pip install opensearch-py
+RUN pip install --only-binary=grpcio opensearch-py google-cloud-bigquery pyarrow pandas
 
 
 # définit le répertoire de travail
@@ -32,6 +32,9 @@ WORKDIR /app
 
 # copie le script Python dans le répertoire de travail
 COPY main.py . 
+
+COPY service-account.json /secrets/service-account.json
+ENV GOOGLE_APPLICATION_CREDENTIALS=/secrets/service-account.json
 
 # exécute le script Python
 CMD ["/opt/spark/bin/spark-submit", "main.py"] 

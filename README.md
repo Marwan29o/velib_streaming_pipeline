@@ -1,5 +1,7 @@
 # Vélib' Streaming Pipeline
 
+[![CI](https://github.com/Marwan29o/velib_streaming_pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/Marwan29o/velib_streaming_pipeline/actions/workflows/ci.yml)
+
 Pipeline de données temps réel ingérant les données de disponibilité des stations Vélib' (Paris),
 les traitant avec Apache Spark Structured Streaming, et les exposant sur deux couches de stockage complémentaires.
 

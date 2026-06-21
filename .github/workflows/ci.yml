@@ -1,0 +1,33 @@
+name: CI 
+
+on: 
+  push: # Quand on pousse sur la branche main
+    branches: ["main"]
+  pull_request: # Quand on ouvre une pull request
+    branches: ["main"]
+
+jobs:
+  lint-and-test: # On définit un job qui s'appelle lint-and-test 
+    runs-on: ubuntu-latest # On choisit la machine virtuelle 
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4 # On récupère le code : action officielle publiée par GitHub qui est équivalente à un "git pull" 
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5 # On installe uv : action officielle publiée par GitHub 
+
+      - name: Installer les dépendances
+        run: |
+          cd producer
+          uv sync --dev
+
+      - name: Lint avec ruff
+        run: |
+          cd producer
+          uv run ruff check .
+
+      - name: Tests avec pytest
+        run: |
+          cd producer
+          uv run pytest tests/ -v

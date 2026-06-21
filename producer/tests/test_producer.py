@@ -32,9 +32,9 @@ def test_build_record_return_14_field():
 def test_build_record_valeurs_correctes():
     station = make_fake_station()
     record = build_record(station)
-    assert station["stationcode"] == "12345"
-    assert station["capacity"] == 20
-    assert station["nom_arrondissement_communes"] == "Paris 14e Arrondissement"
+    assert record["stationcode"] == "12345"
+    assert record["capacity"] == 20
+    assert record["nom_arrondissement_communes"] == "Paris 14e Arrondissement"
 
 
 def test_build_record_missing_field():
